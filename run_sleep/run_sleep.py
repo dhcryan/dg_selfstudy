@@ -4,6 +4,11 @@ import utils_sleep
 import torch
 import numpy as np
 import time
+from torchsummary import summary
+# from torch.utils.tensorboard import SummaryWriter
+# # from tensorboardX import SummaryWriter
+# writer = SummaryWriter()
+
 from model_sleep import SleepBase, SleepDev, SleepCondAdv, SleepDANN, SleepIRM, SleepSagNet, SleepPCL, SleepMLDG
 
 def accuracy_score(y_true, y_pred):
@@ -62,6 +67,7 @@ if __name__ == '__main__':
 
     device = torch.device("cuda:{}".format(args.cuda) if torch.cuda.is_available() else "cpu")
     print ('device:', device)
+    # 두 개 다쓰고싶은디
     
     # set random seed
     seed = 12345
@@ -72,7 +78,7 @@ if __name__ == '__main__':
     torch.backends.cudnn.benchmark = True
 
     # load data
-    path = "data/sleep/test_pat_map_sleep.pkl"
+    path = "C:\\Users\\dhc40\\manyDG\\data\\sleep\\test_pat_map_sleep.pkl"
     if os.path.exists(path):
         train_pat_map, test_pat_map, val_pat_map = utils_sleep.load()
     else:   
@@ -85,7 +91,7 @@ if __name__ == '__main__':
             if i == args.N_pat: break
             train_X += X
         train_loader = torch.utils.data.DataLoader(utils_sleep.SleepLoader(train_X),
-                    batch_size=256, shuffle=True, num_workers=20)
+                    batch_size=256, shuffle=True, num_workers=16)
         return train_loader
 
     def trainloader_for_adv():
@@ -96,7 +102,7 @@ if __name__ == '__main__':
             train_X += X
             train_ID += [i for _ in X]
         train_loader = torch.utils.data.DataLoader(utils_sleep.SleepIDLoader(train_X, train_ID),
-                    batch_size=256, shuffle=True, num_workers=20)
+                    batch_size=256, shuffle=True, num_workers=16)
         return train_loader
 
     def trainloader_for_dev():
@@ -107,9 +113,8 @@ if __name__ == '__main__':
             np.random.shuffle(X)
             train_X += X[:len(X)//2 + 1]
             train_X_aux += X[-len(X)//2 - 1:]
-        
         train_loader = torch.utils.data.DataLoader(utils_sleep.SleepDoubleLoader(train_X, train_X_aux),
-                batch_size=256, shuffle=True, num_workers=20)
+                batch_size=256, shuffle=True, num_workers=16)
         return train_loader
 
     def trainloader_for_MLDG():
@@ -129,7 +134,7 @@ if __name__ == '__main__':
         for _, X in val_pat_map.items():
             val_X += X
         val_loader = torch.utils.data.DataLoader(utils_sleep.SleepLoader(val_X),
-                batch_size=256, shuffle=False, num_workers=20)
+                batch_size=256, shuffle=False, num_workers=16)
         return val_loader
 
     def testloader_for_all():
@@ -137,9 +142,9 @@ if __name__ == '__main__':
         for _, X in test_pat_map.items():
             test_X += X
         test_loader = torch.utils.data.DataLoader(utils_sleep.SleepLoader(test_X),
-                batch_size=256, shuffle=False, num_workers=20)
+                batch_size=256, shuffle=False, num_workers=16)
         return test_loader
-
+#feature extracotr 하나정해서 backboen으로 슨다
     # load model
     if args.model == "base":
         train_loader = trainloader_for_other()
@@ -196,7 +201,7 @@ if __name__ == '__main__':
         test_array.append(accuracy_score(gt, result))
         test_kappa_array.append(cohen_kappa_score(gt, result))
         test_f1_array.append(weighted_f1(gt, result))
-        with open('log_new/sleep/{}.log'.format(model_name), 'a') as outfile:
+        with open('C:\\Users\\dhc40\\manyDG\\log_new\\sleep\\{}.log'.format(model_name), 'a') as outfile:
             print ('{}-th test accuracy: {:.4}, kappa: {:.4}, weighted_f1: {:.4}'.format(
                 i, accuracy_score(gt, result), cohen_kappa_score(gt, result), weighted_f1(gt, result)), file=outfile)
         
@@ -206,10 +211,13 @@ if __name__ == '__main__':
         val_array.append(accuracy_score(gt, result))
         val_kappa_array.append(cohen_kappa_score(gt, result))
         val_f1_array.append(weighted_f1(gt, result))
-        with open('log_new/sleep/{}.log'.format(model_name), 'a') as outfile:
+        with open('C:\\Users\\dhc40\\manyDG\\log_new\\sleep\\{}.log'.format(model_name), 'a') as outfile:
              print ('{}-th val accuracy: {:.4}, kappa: {:.4}, weighted_f1: {:.4}'.format(
                 i, accuracy_score(gt, result), cohen_kappa_score(gt, result), weighted_f1(gt, result)), file=outfile)
 
         # save model
-        torch.save(model.state_dict(), 'pre-trained/sleep/{}-{}.pt'.format(i, model_name))
+        torch.save(model.state_dict(), 'C:\\Users\\dhc40\\manyDG\\pre-trained\\sleep{}-{}.pt'.format(i, model_name))
+        # writer.flush()
+        # writer.close()
+
         print ()

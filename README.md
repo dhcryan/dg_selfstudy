@@ -1,5 +1,10 @@
-# Data, Processing Scripts, Baselines and Model Codes for ICLR'23 Submission
-- submission: ManyDG: Many-DOMAIN GENERALIZATION FOR HEALTHCARE APPLICATIONS
+# ICLR'23 ManyDG Paper
+- ManyDG: Many-domain Generalization for Healthcare Applications
+- Data, Processing Scripts, Baselines and Model Codes
+> 15-minute explanation video is provided in [YouTube]
+https://www.youtube.com/watch?v=xKOSiauQtwc
+
+<img src="ICLR-2023-poster.png" width="800">
 
 ## 1. Folder Tree
 - ```data/```
@@ -66,4 +71,14 @@ cd ./ManyDG
 python eICU_process_step1.py
 python eICU_process_step2.py
 python run_hospitalization/run_hospitalization.py --model [MODEL] --cuda [WHICH GPU] --N_pat [N_OF_PAT] --epochs [EPOCHS]
+```
+
+## 3. Citation
+```bibtex
+@inproceedings{yang2023manydg,
+    title = {ManyDG: Many-domain Generalization for Healthcare Applications},
+    author = {Yang, Chaoqi and Westover, M. Brandon and Sun, Jimeng},
+    booktitle = {The 11th International Conference on Learning Representations, {ICLR} 2023},
+    year = {2023}
+}
 ```
