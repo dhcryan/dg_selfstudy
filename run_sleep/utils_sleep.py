@@ -68,7 +68,6 @@ class SleepDoubleLoader(torch.utils.data.Dataset):
         path = os.path.join(self.dir, self.indices[index])
         sample = pickle.load(open(path, 'rb'))
         X, y = sample['X'], y_transform(sample['y'])
-
         path_aux = os.path.join(self.dir, self.indices_aux[index])
         sample_aux = pickle.load(open(path_aux, 'rb'))
         X_aux, y_aux = sample_aux['X'], y_transform(sample_aux['y'])

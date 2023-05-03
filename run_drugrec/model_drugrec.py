@@ -8,8 +8,8 @@ from torch import autograd
 from utils_drugrec import multi_label_metric
 import sys
 sys.path.append("/srv/local/data/HealthDG")
-from model import Base, Dev, CondAdv, DANN, IRM, SagNet, PCL, MLDG
-from model import BYOL, entropy_for_CondAdv
+from mymodel import Base, Dev, CondAdv, DANN, IRM, SagNet, PCL, MLDG
+from mymodel import BYOL, entropy_for_CondAdv
 
 """
 MIMIC-III drug recommendation

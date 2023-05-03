@@ -81,23 +81,19 @@ class SleepDev(nn.Module):
 
         for _, (X, X2, label, label2) in enumerate(train_loader):
             X = X.to(device)
-            X2 = X2.to(device) 
-            #sample 이 여기서 2개구나
+            X2 = X2.to(device)
             label = label.to(device)
             label2 = label2.to(device)
             y_par = (label != label2).float()
 
-            out, _, z, v, e = self.model(X) 
-            #orthogonal projecton
+            out, _, z, v, e = self.model(X)
             out2, _, z2, v2, e2 = self.model(X2)
 
             ##### build rec
-            prototype = self.model.g_net.prototype[label] 
-            #label predictor
+            prototype = self.model.g_net.prototype[label]
             prototype2 = self.model.g_net.prototype[label2]
             rec = self.model.p_net(torch.cat([z, prototype2], dim=1))
             rec2 = self.model.p_net(torch.cat([z2, prototype], dim=1))
-            # data decoder
             ######
 
             # loss1: cross entropy loss
@@ -106,7 +102,7 @@ class SleepDev(nn.Module):
             loss2 = self.BYOL(z, z2)
             # loss3: reconstruction loss
             loss3 = self.BYOL(rec, v2) + self.BYOL(rec2, v)
-            # loss4: same embedding space  Lmmd ?
+            # loss4: same embedding space
             z_mean = (torch.mean(z, dim=0) + torch.mean(z2, dim=0)) / 2.0
             v_mean = (torch.mean(v, dim=0) + torch.mean(v2, dim=0)) / 2.0
             loss4 = torch.sum(torch.pow(z_mean - v_mean, 2)) / torch.sum(torch.pow(v_mean.detach(), 2))
@@ -122,7 +118,6 @@ class SleepDev(nn.Module):
             loss_collection[2].append(loss3.item())
             loss_collection[3].append(loss4.item())
             loss_collection[4].append(loss5.item())
-            # writer.add_scalar("C:\\Users\\dhc40\\manyDG\\runs\\sleep", loss)
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
@@ -145,10 +140,6 @@ class SleepDev(nn.Module):
             gt = np.array([])
             for X, y in test_loader:
                 out, _, _, _, _ = self.model(X.to(device))
-                # print(out) #output check
-                # print(out.shape)
-                # print(torch.max(out, 1)[1]) 
-                # print(torch.max(out, 1)[1].shape)
                 result = np.append(result, torch.max(out, 1)[1].cpu().numpy())
                 gt = np.append(gt, y.numpy())
         return result, gt
@@ -431,4 +422,3 @@ class SleepMLDG(nn.Module):
                 result = np.append(result, torch.max(convScore, 1)[1].cpu().numpy())
                 gt = np.append(gt, y.numpy())
         return result, gt
-

@@ -8,8 +8,8 @@ from sklearn.metrics import fbeta_score, cohen_kappa_score, average_precision_sc
 from collections import OrderedDict
 import sys
 sys.path.append("/home/chaoqiy2/Seizure/src_cq_new")
-from model import Base, Dev, CondAdv, DANN, IRM, PCL, MLDG
-from model import BYOL, entropy_for_CondAdv, ProxyPLoss
+from mymodel import Base, Dev, CondAdv, DANN, IRM, PCL, MLDG
+from mymodel import BYOL, entropy_for_CondAdv, ProxyPLoss
 
 criterion = torch.nn.BCEWithLogitsLoss()
 

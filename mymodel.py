@@ -6,10 +6,28 @@ import pickle
 from torch import autograd
 import math
 from torch.nn import Parameter
+# from transformers import Wav2Vec2Processor, Wav2Vec2Model
+
+
+"""
+wav2vec 2.0 processor
+"""
+# class FeatureWav2Vec2(nn.Module):
+#     def __init__(self):
+#         super(FeatureWav2Vec2, self).__init__()
+#         self.processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-large-960h")
+#         self.model = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-large-960h")
+        
+#     def forward(self, x):
+#         input_values = self.processor(x,  return_tensors="pt", padding=True)['input_values']
+#         outputs = self.model(input_values)
+#         last_hidden_state = outputs.last_hidden_state
+#         return last_hidden_state.mean(dim=1)
 
 """
 Residual block
 """
+
 class ResBlock_sleep(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1, downsample=False, pooling=False):
         super(ResBlock_sleep, self).__init__()
@@ -150,7 +168,7 @@ class FeatureCNN_seizure(nn.Module):
         x = self.conv2(x)
         x = self.conv3(x).squeeze(-1).squeeze(-1)
         return x 
-
+# feature extractor code
 class FeatureCNN_sleep(nn.Module):
     def __init__(self, n_dim=128):
         super(FeatureCNN_sleep, self).__init__()
@@ -883,13 +901,15 @@ class Base(nn.Module):
                 nn.Linear(16, 6)
             )
         elif dataset == "sleep":
+            # self.feature_cnn = FeatureWav2Vec2()
+            # self.processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-large-960h")
+        
             self.feature_cnn = FeatureCNN_sleep()
             self.g_net = nn.Sequential(
                 nn.Linear(128, 32),
                 nn.ReLU(),
                 nn.Linear(32, 5),
             )
-        
         elif dataset == "drugrec": 
             if model == "Retain":
                 self.feature_cnn = Retain(voc_size, emb_dim=64, device=device)
@@ -913,7 +933,6 @@ class Base(nn.Module):
                 nn.ELU(),
                 nn.Linear(16, 1),
             )
-
     @staticmethod
     def model_initialization_params():
         idx_path = './data/idxFile'
@@ -926,7 +945,10 @@ class Base(nn.Module):
         return diagICD2idx, diagstring2idx, labname2idx, physicalexam2idx, treatment2idx, medname2idx
 
     def forward(self, x):
+        print(x)
         x = self.feature_cnn(x)
+        # x = self.processor(x, return_tensors="pt", padding=True)
+        # x = x.input_values  # Extract the processed audio data
         out = self.g_net(x)
         return out, x
 
@@ -969,8 +991,8 @@ class GNet(nn.Module):
         self.prototype.requires_grad = True
         self.T = 0.5
     def forward(self, x):
-        x = F.normalize(x, p=2, dim=1)
-        logits = x @ F.normalize(self.prototype, p=2, dim=1).T / self.T
+        x = F.normalize(x, p=2, dim=1) #L2 NORM, vㅗz
+        logits = x @ F.normalize(self.prototype, p=2, dim=1).T / self.T # matrix multiplication operator in Python
         return logits
 
 class GNet_binary(nn.Module):
@@ -982,7 +1004,7 @@ class GNet_binary(nn.Module):
         self.prototype.requires_grad = True
         self.T = 0.5
     def forward(self, x):
-        x = F.normalize(x, p=2, dim=1)
+        x = F.normalize(x, p=2, dim=1) 
         logits = x @ F.normalize(self.prototype, p=2, dim=1).T / self.T
         return torch.softmax(logits, 1)[:, 0]
 
@@ -1020,6 +1042,7 @@ class Dev(Base):
                 nn.ReLU(),
                 nn.Linear(128, 128),
             )
+            
             self.g_net = GNet(5, 128)
 
         elif dataset == "drugrec": 
@@ -1061,11 +1084,15 @@ class Dev(Base):
         predictor is g(x)
         mutual reconstruction p(x)
         """
+        # x = self.processor(x, return_tensors="pt", padding=True)
+        # v = x.input_values  # Extract the processed audio data
+        
         v = self.feature_cnn(x)
-        z = self.q_net(v)
-        e = vec_minus(v, z)
-        out = self.g_net(e)
-        # rec = self.p_net(z)
+        z = self.q_net(v) #domain encoder
+        e = vec_minus(v, z) #projection
+        out = self.g_net(e) #predictor
+        # rec = self.p_net(z) 
+        #왜 안하지
         return out, z, z, v, e
 
 def entropy_for_CondAdv(labels, base=None):
