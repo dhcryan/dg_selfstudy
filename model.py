@@ -5,8 +5,10 @@ import numpy as np
 import pickle
 from torch import autograd
 import math
+from transformers import Wav2Vec2Model
+from transformers import Wav2Vec2FeatureExtractor
 from torch.nn import Parameter
-
+# from transformers import Wav2Vec2Model
 """
 Residual block
 """
@@ -218,6 +220,22 @@ class FeatureCNN_sleep(nn.Module):
         x = x.reshape(x.shape[0], -1)
         return x 
 
+
+"""
+new feature extractor
+"""
+
+
+# class FeatureWav2Vec2_sleep(nn.Module):
+#     def __init__(self, wav2vec2_model_name):
+#         super(FeatureWav2Vec2_sleep, self).__init__()
+#         self.wav2vec2 = Wav2Vec2Model.from_pretrained(wav2vec2_model_name)
+        
+#     def forward(self, input_ids):
+#         features = self.wav2vec2(input_ids).last_hidden_state
+#         # reshape features if needed
+#         features = features.view(features.size(0), -1)
+#         return features
 
 """
 Model for drug rec
@@ -870,6 +888,7 @@ class Transformer(nn.Module):
 """
 Core Module
 """
+
 class Base(nn.Module):
     def __init__(self, dataset, device=None, voc_size=None, model=None, ehr_adj=None, ddi_adj=None):
         super(Base, self).__init__()
@@ -883,7 +902,10 @@ class Base(nn.Module):
                 nn.Linear(16, 6)
             )
         elif dataset == "sleep":
-            self.feature_cnn = FeatureCNN_sleep()
+            self.feature_cnn=FeatureCNN_sleep()
+            # self.feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained('facebook/wav2vec2-base-960h')
+            # self.feature_extractor.sampling_rate=100
+            # self.feature_cnn=self.feature_extractor
             self.g_net = nn.Sequential(
                 nn.Linear(128, 32),
                 nn.ReLU(),
@@ -1061,7 +1083,9 @@ class Dev(Base):
         predictor is g(x)
         mutual reconstruction p(x)
         """
+        # print(x.shape)
         v = self.feature_cnn(x)
+        # print(v)
         z = self.q_net(v)
         e = vec_minus(v, z)
         out = self.g_net(e)

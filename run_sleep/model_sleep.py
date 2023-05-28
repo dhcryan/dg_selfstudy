@@ -6,9 +6,22 @@ import numpy as np
 from torch import autograd
 from collections import OrderedDict
 import sys
+import os
 # from torch.utils.tensorboard import SummaryWriter
-# # from tensorboardX import SummaryWriter
-# writer = SummaryWriter()
+log_path='C:\\Users\\dhc40\\manyDG\\run_sleep\\Loss'
+from torch.utils.tensorboard import SummaryWriter
+
+# writer_loss1 = SummaryWriter(log_dir=log_path + '\\Loss_total')
+# writer_loss2 = SummaryWriter(log_dir=log_path + '\\Loss_cross entropy')
+# writer_loss3 = SummaryWriter(log_dir=log_path + '\\Loss_MMD')
+# writer_loss4 = SummaryWriter(log_dir=log_path + '\\Loss_reconstruction')
+# writer_loss5 = SummaryWriter(log_dir=log_path + '\\Loss_similarity')
+
+
+writer_loss = SummaryWriter(log_dir=log_path)
+# writer_accuracy = SummaryWriter(log_dir=log_path)
+
+
 sys.path.append('C:\\Users\\dhc40\\manyDG')
 sys.path.append('C:\\Users\\dhc40\\manyDG\\data\\sleep')
 sys.path.append('C:\\Users\\dhc40\\manyDG\\data\\HealthDG')
@@ -79,11 +92,13 @@ class SleepDev(nn.Module):
         self.model.train()
         loss_collection = [[], [], [], [], []]
 
-        for _, (X, X2, label, label2) in enumerate(train_loader):
+        # for _, (X, X2, label, label2) in enumerate(train_loader):
+        for i, (X, X2, label, label2) in enumerate(train_loader,1):
             X = X.to(device)
             X2 = X2.to(device)
             label = label.to(device)
             label2 = label2.to(device)
+            # domain=domain
             y_par = (label != label2).float()
 
             out, _, z, v, e = self.model(X)
@@ -113,11 +128,26 @@ class SleepDev(nn.Module):
             avg_neg = torch.sum(sim * (1 - y_cross)) / torch.sum(1 - y_cross)
             loss5 = avg_pos + avg_neg
             loss = 1 * loss1  + 1 * loss2 + 1 * loss3 + 1 * loss4 + 0 * loss5
+            
+            # writer_loss1.add_scalar(r"C:\Users\dhc40\manyDG\run_sleep\Loss\Loss_total", loss, i)
+            # writer_loss2.add_scalar(r"C:\Users\dhc40\manyDG\run_sleep\Loss\Loss_cross entropy", loss1, i)
+            # writer_loss3.add_scalar(r"C:\Users\dhc40\manyDG\run_sleep\Loss\Loss_MMD", loss2, i)
+            # writer_loss4.add_scalar(r"C:\Users\dhc40\manyDG\run_sleep\Loss\Loss_reconstruction", loss3, i)
+            # writer_loss5.add_scalar(r"C:\Users\dhc40\manyDG\run_sleep\Loss\Loss_similarity", loss4, i)
+
+            writer_loss.add_scalars("Loss", {"Loss_total": loss,
+                                        "Loss_cross entropy": loss1,
+                                        "Loss_MMD": loss2,
+                                        "Loss_reconstruction": loss3,
+                                        "Loss_similarity": loss4}, i)
+            
+            
             loss_collection[0].append(loss1.item())
             loss_collection[1].append(loss2.item())
             loss_collection[2].append(loss3.item())
             loss_collection[3].append(loss4.item())
             loss_collection[4].append(loss5.item())
+            
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
@@ -143,7 +173,12 @@ class SleepDev(nn.Module):
                 result = np.append(result, torch.max(out, 1)[1].cpu().numpy())
                 gt = np.append(gt, y.numpy())
         return result, gt
-
+# SummaryWriter 객체 닫기
+    writer_loss.flush()
+    writer_loss.close()
+    # writer_accuracy.flush()
+    # writer_accuracy.close()
+    
 class SleepCondAdv(nn.Module):
     def __init__(self, device, dataset, N_pat):
         super(SleepCondAdv, self).__init__()
