@@ -6,6 +6,8 @@ import pickle
 from torch import autograd
 import math
 from torch.nn import Parameter
+import matplotlib.pyplot as plt
+import torchaudio
 
 """
 Residual block
@@ -150,12 +152,12 @@ class FeatureCNN_seizure(nn.Module):
         x = self.conv2(x)
         x = self.conv3(x).squeeze(-1).squeeze(-1)
         return x 
-# feature extractor code
+
 class FeatureCNN_sleep(nn.Module):
     def __init__(self, n_dim=128):
         super(FeatureCNN_sleep, self).__init__()
         self.conv1 = nn.Sequential(
-            nn.Conv2d(2, 6, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(2, 6, kernel_size=3, stride=1, padding=1), # change the argument for dimension of input channels
             nn.BatchNorm2d(6),
             nn.ELU(inplace=True),
         )
@@ -219,6 +221,8 @@ class FeatureCNN_sleep(nn.Module):
         return x 
 
 
+
+
 """
 Model for drug rec
 """
@@ -231,7 +235,7 @@ def get_last_visit(hidden_states, mask):
     last_hidden_states = torch.gather(hidden_states, 1, last_visit)
     last_hidden_state = last_hidden_states[:, 0, :]
     return last_hidden_state
-    
+
 class GraphConvolution(nn.Module):
     """
     Simple GCN layer, similar to https://arxiv.org/abs/1609.02907
@@ -354,7 +358,7 @@ class GAMENet(nn.Module):
         diagT_emb_masked = torch.sum(diagT_emb * mask.unsqueeze(-1).unsqueeze(-1), dim=2) # (batch, visit, dim)
         procT_emb = F.embedding(procT, weight=fast_weights["feature_cnn.embedding.1.weight"])
         procT_emb_masked = torch.sum(procT_emb * mask.unsqueeze(-1).unsqueeze(-1), dim=2)
-        
+
         # use RNN encoder
         diag_emb = self.encoder[0](diagT_emb_masked)[0] # (batch, visit, dim*2)
         proc_emb = self.encoder[1](procT_emb_masked)[0] # (batch, visit, dim*2)
@@ -363,7 +367,7 @@ class GAMENet(nn.Module):
         patient_representations = F.relu(patient_representations)
         queries = F.linear(patient_representations, \
             weight=fast_weights["feature_cnn.query.1.weight"], bias=fast_weights["feature_cnn.query.1.bias"]) # (batch, visit, dim)
-        
+
         # graph memory module
         '''I:generate current input'''
         query = get_last_visit(queries, mask) # (batch, dim)
@@ -391,13 +395,13 @@ class GAMENet(nn.Module):
 
         history_keys = queries # (batch, visit, dim)
         history_values = drugT # (batch, visit, med_size)
-            
+
         '''O:read from global memory bank and dynamic memory bank'''
         key_weights1 = torch.softmax(torch.mm(query, drug_memory.t()), dim=-1)  # (batch, med_size)
         fact1 = torch.mm(key_weights1, drug_memory)  # (batch, dim)
 
         # remove the last visit from mask
-        
+
         visit_weight = torch.softmax(torch.einsum("bd,bvd->bv", query, history_keys) - (1-mask_) * 1e10, dim=1) # (batch, visit)
         weighted_values = torch.einsum("bv,bvz->bz", visit_weight, history_values.float()) # (batch, med_size)
         fact2 = torch.mm(weighted_values, drug_memory) # (batch, dim)
@@ -420,7 +424,7 @@ class GAMENet(nn.Module):
         diagT_emb_masked = torch.sum(diagT_emb * mask.unsqueeze(-1).unsqueeze(-1), dim=2) # (batch, visit, dim)
         procT_emb = self.embedding[1](procT)
         procT_emb_masked = torch.sum(procT_emb * mask.unsqueeze(-1).unsqueeze(-1), dim=2)
-        
+
         # use RNN encoder
         diag_emb = self.encoder[0](diagT_emb_masked)[0] # (batch, visit, dim*2)
         proc_emb = self.encoder[1](procT_emb_masked)[0] # (batch, visit, dim*2)
@@ -441,7 +445,7 @@ class GAMENet(nn.Module):
 
         history_keys = queries # (batch, visit, dim)
         history_values = drugT # (batch, visit, med_size)
-            
+
         '''O:read from global memory bank and dynamic memory bank'''
         key_weights1 = torch.softmax(torch.mm(query, drug_memory.t()), dim=-1)  # (batch, med_size)
         fact1 = torch.mm(key_weights1, drug_memory)  # (batch, dim)
@@ -475,7 +479,7 @@ class Retain(nn.Module):
         #### parameters ###
         self.embedding = nn.ModuleList(
             [nn.Embedding(voc_size[i] + 1, emb_dim) for i in range(3)])
-        
+
         self.dropout = nn.Dropout(p=0.5)
         self.compact = nn.Linear(emb_dim * 3, emb_dim)
         self.alpha_gru = nn.GRU(emb_dim, emb_dim, batch_first=True)
@@ -550,27 +554,27 @@ class L_Concat(nn.Module):
             nn.Linear(emb_dim * 2, emb_dim),
             nn.ELU(),
             nn.Linear(emb_dim, emb_dim))
-        
+
         self.labNet = nn.Sequential(
             nn.Linear(len(uniq_labname), emb_dim),
             nn.ELU(),
             nn.Linear(emb_dim, emb_dim))
-        
+
         self.physicalexamNet = nn.Sequential(
             nn.Linear(emb_dim, emb_dim),
             nn.ELU(),
             nn.Linear(emb_dim, emb_dim))
-        
+
         self.treatmentNet = nn.Sequential(
             nn.Linear(emb_dim, emb_dim),
             nn.ELU(),
             nn.Linear(emb_dim, emb_dim))
-        
+
         self.medNet = nn.Sequential(
             nn.Linear(emb_dim, emb_dim),
             nn.ELU(),
             nn.Linear(emb_dim, emb_dim))
-        
+
         self.encoder = [nn.GRU(emb_dim, emb_dim, 3, batch_first=True) for _ in range(5)]
 
         for i in range(5):
@@ -580,13 +584,13 @@ class L_Concat(nn.Module):
             nn.Linear(3, 8),
             nn.ELU(),
             nn.Linear(8, 3))
-        
+
         self.dropout = nn.Dropout(0.25)
         self.readmission = nn.Linear(5*emb_dim+3, emb_dim)
-        
+
     def agg_emb(self, x):
         return x.sum(dim=0).unsqueeze(dim=0)
-    
+
     def initializePE(self):
         dim_x, dim_y = self.PE.shape
         for x in range(dim_x):
@@ -595,7 +599,7 @@ class L_Concat(nn.Module):
                     self.PE[x, y] = np.cos(x / (10000**((y-1)/dim_y)))
                 else:
                     self.PE[x, y] = np.sin(x / (10000**(y/dim_y)))
-        
+
     def forward(self, ALL):
         patientF, x, mask = ALL
         emb_out = []
@@ -615,7 +619,7 @@ class L_Concat(nn.Module):
                 elif event[0] == 4:
                     feature = self.agg_emb(self.medname(event[1]))
                 code_list[event[0]].append(feature)
-            
+
             for i in range(5):
                 if i == 0:
                     code_list[i] = self.diagNet(torch.cat(code_list[i], 0))
@@ -656,7 +660,7 @@ class L_Concat(nn.Module):
                 elif event[0] == 4:
                     feature = self.agg_emb(F.embedding(event[1], weight=fast_weights["feature_cnn.medname.weight"]))
                 code_list[event[0]].append(feature)
-            
+
             for i in range(5):
                 if i == 0:
                     code_list[i] = F.linear(torch.cat(code_list[i], 0), weight=fast_weights["feature_cnn.diagNet.0.weight"], bias=fast_weights["feature_cnn.diagNet.0.bias"])
@@ -713,46 +717,46 @@ class Transformer(nn.Module):
             nn.Linear(emb_dim * 2, emb_dim),
             nn.ELU(),
             nn.Linear(emb_dim, emb_dim))
-        
+
         self.labNet = nn.Sequential(
             nn.Linear(len(uniq_labname), emb_dim),
             nn.ELU(),
             nn.Linear(emb_dim, emb_dim))
-        
+
         self.physicalexamNet = nn.Sequential(
             nn.Linear(emb_dim, emb_dim),
             nn.ELU(),
             nn.Linear(emb_dim, emb_dim))
-        
+
         self.treatmentNet = nn.Sequential(
             nn.Linear(emb_dim, emb_dim),
             nn.ELU(),
             nn.Linear(emb_dim, emb_dim))
-        
+
         self.medNet = nn.Sequential(
             nn.Linear(emb_dim, emb_dim),
             nn.ELU(),
             nn.Linear(emb_dim, emb_dim))
-        
+
         encoder_layer = nn.TransformerEncoderLayer(d_model=emb_dim, dim_feedforward=64, nhead=8, dropout=0.25, activation='relu')
         encoder_norm = nn.LayerNorm(emb_dim)
         self.encoder = nn.TransformerEncoder(encoder_layer, num_encoder_layers, encoder_norm)
-        
+
         self.patientNet = nn.Sequential(
             nn.Linear(3, 8),
             nn.ELU(),
             nn.Linear(8, 3))
-        
+
         self.dropout = nn.Dropout(0.25)
         self.readmission = nn.Linear(emb_dim + 3, emb_dim)
 
         self.PE = torch.zeros((2048, emb_dim)).to(device)
         self.PETransform = nn.Linear(emb_dim, emb_dim)
         self.initializePE()
-        
+
     def agg_emb(self, x):
         return x.sum(dim=0).unsqueeze(dim=0)
-    
+
     def initializePE(self):
         dim_x, dim_y = self.PE.shape
         for x in range(dim_x):
@@ -761,7 +765,7 @@ class Transformer(nn.Module):
                     self.PE[x, y] = np.cos(x / (10000**((y-1)/dim_y)))
                 else:
                     self.PE[x, y] = np.sin(x / (10000**(y/dim_y)))
-            
+
     def embedding(self, x, LEN):
         emb = []
         for seq in x:
@@ -807,7 +811,7 @@ class Transformer(nn.Module):
                 elif event[0] == 1:
                     feature = event[1].reshape(1, -1)
                     embedding = F.linear(feature, weight=labNet_weight1, bias=labNet_bias1)
-                    embedding = F.elu(embedding)    
+                    embedding = F.elu(embedding)
                     embedding = F.linear(embedding, weight=labNet_weight2, bias=labNet_bias2)
                 elif event[0] == 2:
                     feature = self.agg_emb(F.embedding(event[1], weight=physicalexam))
@@ -828,7 +832,7 @@ class Transformer(nn.Module):
             tmp = [self.default for _ in range(LEN - len(tmp))] + tmp
             emb.append(torch.cat(tmp, 0).unsqueeze(dim=0))
         return torch.cat(emb,0)
-        
+
     def forward(self, ALL):
         patientF, x, mask = ALL
         emb = self.embedding(x, mask.shape[1])
@@ -870,6 +874,31 @@ class Transformer(nn.Module):
 """
 Core Module
 """
+
+"""
+Wav2vec 2.0
+"""
+
+class PretrainedWav2Vec2Model(nn.Module):
+    def __init__(self, sample_rate):
+        super().__init__()
+
+        self.sample_rate = sample_rate
+
+        self.bundle = torchaudio.pipelines.WAV2VEC2_BASE
+        model = self.bundle.get_model()
+        model.eval()
+
+        self.model = model
+
+    def forward(self, x):
+        # print(x.shape)==torch.Size([256, 2, 3000])
+        # x[:,0] is the first channel-> [256, 3000]
+        x = torchaudio.functional.resample(x[:,0], self.sample_rate, self.bundle.sample_rate)
+        # print(x.shape) => 256,900
+        c, _ = self.model.extract_features(x)
+        return c[-1]
+
 class Base(nn.Module):
     def __init__(self, dataset, device=None, voc_size=None, model=None, ehr_adj=None, ddi_adj=None):
         super(Base, self).__init__()
@@ -883,14 +912,19 @@ class Base(nn.Module):
                 nn.Linear(16, 6)
             )
         elif dataset == "sleep":
+            #100 hz==10000 sample rate
+            self.wav2vec2 = PretrainedWav2Vec2Model(10000)
             self.feature_cnn = FeatureCNN_sleep()
             self.g_net = nn.Sequential(
                 nn.Linear(128, 32),
                 nn.ReLU(),
-                nn.Linear(32, 5),
+                nn.Linear(32, 5), # change the argument for dimension of output
             )
-        
-        elif dataset == "drugrec": 
+            self.fc3 = nn.Linear(768, 1)
+            self.fc4 = nn.Linear(14, 128)
+
+
+        elif dataset == "drugrec":
             if model == "Retain":
                 self.feature_cnn = Retain(voc_size, emb_dim=64, device=device)
             elif model == "GAMENet":
@@ -926,6 +960,10 @@ class Base(nn.Module):
         return diagICD2idx, diagstring2idx, labname2idx, physicalexam2idx, treatment2idx, medname2idx
 
     def forward(self, x):
+        # x = self.wav2vec2(x)
+        # x = self.fc3(x)
+        # x = x.squeeze(axis=2)
+        # x = self.fc4(x)
         x = self.feature_cnn(x)
         out = self.g_net(x)
         return out, x
@@ -965,12 +1003,15 @@ class GNet(nn.Module):
     def __init__(self, N, dim):
         super(GNet, self).__init__()
         self.N = N
+        self.dim = dim
         self.prototype = nn.Parameter(torch.randn(N, dim))
         self.prototype.requires_grad = True
         self.T = 0.5
+        #self.fc = nn.Linear(dim, N)
     def forward(self, x):
         x = F.normalize(x, p=2, dim=1)
         logits = x @ F.normalize(self.prototype, p=2, dim=1).T / self.T
+        #logits = self.fc(x)
         return logits
 
 class GNet_binary(nn.Module):
@@ -1020,9 +1061,11 @@ class Dev(Base):
                 nn.ReLU(),
                 nn.Linear(128, 128),
             )
-            self.g_net = GNet(5, 128)
+            self.g_net = GNet(5, 128) # change the argument for dimension of output
+            #self.fc1 = nn.Linear(23, 1) # change the argument for dimension of input channels
+            #self.fc2 = nn.Linear(2048, 128) # change the argument for sequence length of input
 
-        elif dataset == "drugrec": 
+        elif dataset == "drugrec":
             self.q_net = nn.Sequential(
                 nn.ReLU(),
                 nn.Linear(64, 64),
@@ -1061,11 +1104,19 @@ class Dev(Base):
         predictor is g(x)
         mutual reconstruction p(x)
         """
-        v = self.feature_cnn(x) #feature extractor
-        z = self.q_net(v) #domain encoder
-        e = vec_minus(v, z) #projection
-        out = self.g_net(e) #predictor
-        # rec = self.p_net(z) #왜 안하지
+        #x = x.transpose(1, 2)
+        #v = self.fc1(x)
+        #v = v.squeeze(axis=2)
+        #v = self.fc2(v)
+        v = self.wav2vec2(x)
+        v = self.fc3(v)
+        v = v.squeeze(axis=2)
+        v = self.fc4(v)
+        #v = self.feature_cnn(x)
+        z = self.q_net(v)
+        e = vec_minus(v, z)
+        out = self.g_net(e)
+        # rec = self.p_net(z)
         return out, z, z, v, e
 
 def entropy_for_CondAdv(labels, base=None):
@@ -1091,196 +1142,196 @@ def entropy_for_CondAdv(labels, base=None):
         ent -= i * log(i, base)
     return ent
 
-class CondAdv(Base):
-    """ ICML 2017 Rf-radio """
-    def __init__(self, dataset, N_pat, device=None, voc_size=None, model=None, ehr_adj=None, ddi_adj=None):
-        super(CondAdv, self).__init__(dataset, device, voc_size, model, ehr_adj, ddi_adj)
-        if dataset == "seizure":
-            self.discriminator = nn.Sequential(
-                nn.Linear(128 + 6, 128),
-                nn.ReLU(),
-                nn.Linear(128, N_pat)
-            )
-        elif dataset == "sleep":
-            self.discriminator = nn.Sequential(
-                nn.Linear(128 + 5, 128),
-                nn.ReLU(),
-                nn.Linear(128, N_pat)
-            )
-        elif dataset == "mortality":
-            self.discriminator = nn.Sequential(
-                nn.Linear(128 + 1, 128),
-                nn.ReLU(),
-                nn.Linear(128, N_pat)
-            )
-        elif dataset == "drugrec":
-            self.discriminator = nn.Sequential(
-                nn.Linear(64 + voc_size[2], 64),
-                nn.ReLU(),
-                nn.Linear(64, N_pat)
-            )
+# class CondAdv(Base):
+#     """ ICML 2017 Rf-radio """
+#     def __init__(self, dataset, N_pat, device=None, voc_size=None, model=None, ehr_adj=None, ddi_adj=None):
+#         super(CondAdv, self).__init__(dataset, device, voc_size, model, ehr_adj, ddi_adj)
+#         if dataset == "seizure":
+#             self.discriminator = nn.Sequential(
+#                 nn.Linear(128 + 6, 128),
+#                 nn.ReLU(),
+#                 nn.Linear(128, N_pat)
+#             )
+#         elif dataset == "sleep":
+#             self.discriminator = nn.Sequential(
+#                 nn.Linear(128 + 5, 128),
+#                 nn.ReLU(),
+#                 nn.Linear(128, N_pat)
+#             )
+#         elif dataset == "mortality":
+#             self.discriminator = nn.Sequential(
+#                 nn.Linear(128 + 1, 128),
+#                 nn.ReLU(),
+#                 nn.Linear(128, N_pat)
+#             )
+#         elif dataset == "drugrec":
+#             self.discriminator = nn.Sequential(
+#                 nn.Linear(64 + voc_size[2], 64),
+#                 nn.ReLU(),
+#                 nn.Linear(64, N_pat)
+#             )
 
-    def forward(self, x):
-        rep = self.feature_cnn(x)
-        out = self.g_net(rep)
-        rep = torch.cat([rep, out.detach()], dim=1)
-        d_out = self.discriminator(rep)
-        return out, d_out, rep
+#     def forward(self, x):
+#         rep = self.feature_cnn(x)
+#         out = self.g_net(rep)
+#         rep = torch.cat([rep, out.detach()], dim=1)
+#         d_out = self.discriminator(rep)
+#         return out, d_out, rep
 
-    def forward_with_rep(self, rep):
-        d_out = self.discriminator(rep)
-        return d_out
+#     def forward_with_rep(self, rep):
+#         d_out = self.discriminator(rep)
+#         return d_out
 
-class ReverseLayerF(autograd.Function):
+# class ReverseLayerF(autograd.Function):
 
-    @staticmethod
-    def forward(ctx, x, alpha):
-        ctx.alpha = alpha
+#     @staticmethod
+#     def forward(ctx, x, alpha):
+#         ctx.alpha = alpha
 
-        return x.view_as(x)
+#         return x.view_as(x)
 
-    @staticmethod
-    def backward(ctx, grad_output):
-        output = grad_output.neg() * ctx.alpha
+#     @staticmethod
+#     def backward(ctx, grad_output):
+#         output = grad_output.neg() * ctx.alpha
 
-        return output, None
+#         return output, None
 
-class DANN(Base):
-    """ ICML 2015, JMLR 2016 """
-    def __init__(self, dataset, N_pat, device=None, voc_size=None, model=None, ehr_adj=None, ddi_adj=None):
-        super(DANN, self).__init__(dataset, device, voc_size, model, ehr_adj, ddi_adj)
-        if dataset == "seizure":
-            self.discriminator = nn.Sequential(
-                nn.Linear(128, 128),
-                nn.ReLU(),
-                nn.Linear(128, N_pat)
-            )
-        elif dataset == "sleep":
-            self.discriminator = nn.Sequential(
-                nn.Linear(128, 128),
-                nn.ReLU(),
-                nn.Linear(128, N_pat)
-            )
-        elif dataset == "mortality":
-            self.discriminator = nn.Sequential(
-                nn.Linear(128, 128),
-                nn.ReLU(),
-                nn.Linear(128, N_pat)
-            )
-        elif dataset == "drugrec":
-            self.discriminator = nn.Sequential(
-                nn.Linear(64, 64),
-                nn.ReLU(),
-                nn.Linear(64, N_pat)
-            )
+# class DANN(Base):
+#     """ ICML 2015, JMLR 2016 """
+#     def __init__(self, dataset, N_pat, device=None, voc_size=None, model=None, ehr_adj=None, ddi_adj=None):
+#         super(DANN, self).__init__(dataset, device, voc_size, model, ehr_adj, ddi_adj)
+#         if dataset == "seizure":
+#             self.discriminator = nn.Sequential(
+#                 nn.Linear(128, 128),
+#                 nn.ReLU(),
+#                 nn.Linear(128, N_pat)
+#             )
+#         elif dataset == "sleep":
+#             self.discriminator = nn.Sequential(
+#                 nn.Linear(128, 128),
+#                 nn.ReLU(),
+#                 nn.Linear(128, N_pat)
+#             )
+#         elif dataset == "mortality":
+#             self.discriminator = nn.Sequential(
+#                 nn.Linear(128, 128),
+#                 nn.ReLU(),
+#                 nn.Linear(128, N_pat)
+#             )
+#         elif dataset == "drugrec":
+#             self.discriminator = nn.Sequential(
+#                 nn.Linear(64, 64),
+#                 nn.ReLU(),
+#                 nn.Linear(64, N_pat)
+#             )
             
-    def forward(self, x, alpha):
-        x = self.feature_cnn(x)
-        out = self.g_net(x)
-        reverse_feature = ReverseLayerF.apply(x, alpha)
-        d_out = self.discriminator(reverse_feature)
-        return out, d_out
+#     def forward(self, x, alpha):
+#         x = self.feature_cnn(x)
+#         out = self.g_net(x)
+#         reverse_feature = ReverseLayerF.apply(x, alpha)
+#         d_out = self.discriminator(reverse_feature)
+#         return out, d_out
 
-class IRM(Base):
-    """ arXiv 2020 """
-    def __init__(self, dataset, device=None, voc_size=None, model=None, ehr_adj=None, ddi_adj=None):
-        super(IRM, self).__init__(dataset, device, voc_size, model, ehr_adj, ddi_adj)
+# class IRM(Base):
+#     """ arXiv 2020 """
+#     def __init__(self, dataset, device=None, voc_size=None, model=None, ehr_adj=None, ddi_adj=None):
+#         super(IRM, self).__init__(dataset, device, voc_size, model, ehr_adj, ddi_adj)
     
-    def forward(self, x):
-        x = self.feature_cnn(x)
-        out = self.g_net(x)
-        return out
+#     def forward(self, x):
+#         x = self.feature_cnn(x)
+#         out = self.g_net(x)
+#         return out
 
-class SagNet(Base):
-    """ CVPR 2021 """
-    def __init__(self, dataset, device=None, voc_size=None, model=None, ehr_adj=None, ddi_adj=None):
-        super(SagNet, self).__init__(dataset, device, voc_size, model, ehr_adj, ddi_adj)
-        self.dataset = dataset
-        if dataset == "seizure":
-            self.d_layer3 = ResBlock_seizure(64, 128, 2, True, True)
-            self.d_net = nn.Sequential(
-                nn.Linear(128, 16),
-                nn.ReLU(),
-                nn.Linear(16, 6)
-            )
-        elif dataset == "sleep":
-            self.d_layer3 = ResBlock_sleep(16, 32, 2, True, True)
-            self.d_net = nn.Sequential(
-                nn.Linear(128, 32),
-                nn.ReLU(),
-                nn.Linear(32, 5)
-            )
+# class SagNet(Base):
+#     """ CVPR 2021 """
+#     def __init__(self, dataset, device=None, voc_size=None, model=None, ehr_adj=None, ddi_adj=None):
+#         super(SagNet, self).__init__(dataset, device, voc_size, model, ehr_adj, ddi_adj)
+#         self.dataset = dataset
+#         if dataset == "seizure":
+#             self.d_layer3 = ResBlock_seizure(64, 128, 2, True, True)
+#             self.d_net = nn.Sequential(
+#                 nn.Linear(128, 16),
+#                 nn.ReLU(),
+#                 nn.Linear(16, 6)
+#             )
+#         elif dataset == "sleep":
+#             self.d_layer3 = ResBlock_sleep(16, 32, 2, True, True)
+#             self.d_net = nn.Sequential(
+#                 nn.Linear(128, 32),
+#                 nn.ReLU(),
+#                 nn.Linear(32, 5)
+#             )
 
-    def seizure_pre_layers(self, x):
-        x_random = x[torch.randperm(x.size()[0]), :, :]
-        x = self.feature_cnn.torch_stft(x)
-        x = self.feature_cnn.conv1(x)
-        x = self.feature_cnn.conv2(x)
-        x_random = self.feature_cnn.torch_stft(x_random)
-        x_random = self.feature_cnn.conv1(x_random)
-        x_random = self.feature_cnn.conv2(x_random)
-        return x, x_random
+#     def seizure_pre_layers(self, x):
+#         x_random = x[torch.randperm(x.size()[0]), :, :]
+#         x = self.feature_cnn.torch_stft(x)
+#         x = self.feature_cnn.conv1(x)
+#         x = self.feature_cnn.conv2(x)
+#         x_random = self.feature_cnn.torch_stft(x_random)
+#         x_random = self.feature_cnn.conv1(x_random)
+#         x_random = self.feature_cnn.conv2(x_random)
+#         return x, x_random
     
-    def sleep_pre_layers(self, x):
-        x_random = x[torch.randperm(x.size()[0]), :, :]
-        x = self.feature_cnn.torch_stft(x)
-        x = self.feature_cnn.conv1(x)
-        x = self.feature_cnn.conv2(x)
-        x = self.feature_cnn.conv3(x)
+#     def sleep_pre_layers(self, x):
+#         x_random = x[torch.randperm(x.size()[0]), :, :]
+#         x = self.feature_cnn.torch_stft(x)
+#         x = self.feature_cnn.conv1(x)
+#         x = self.feature_cnn.conv2(x)
+#         x = self.feature_cnn.conv3(x)
 
-        x_random = self.feature_cnn.torch_stft(x_random)
-        x_random = self.feature_cnn.conv1(x_random)
-        x_random = self.feature_cnn.conv2(x_random)
-        x_random = self.feature_cnn.conv3(x_random)
-        return x, x_random
+#         x_random = self.feature_cnn.torch_stft(x_random)
+#         x_random = self.feature_cnn.conv1(x_random)
+#         x_random = self.feature_cnn.conv2(x_random)
+#         x_random = self.feature_cnn.conv3(x_random)
+#         return x, x_random
 
-    def seizure_post_layers(self, SR_rep, CR_rep):
-        SR_rep = self.feature_cnn.conv3(SR_rep)
-        out = self.g_net(SR_rep.squeeze(-1).squeeze(-1))
+#     def seizure_post_layers(self, SR_rep, CR_rep):
+#         SR_rep = self.feature_cnn.conv3(SR_rep)
+#         out = self.g_net(SR_rep.squeeze(-1).squeeze(-1))
 
-        CR_rep = self.d_layer3(CR_rep)
-        out_random = self.d_net(CR_rep.squeeze(-1).squeeze(-1))
-        return out, out_random
+#         CR_rep = self.d_layer3(CR_rep)
+#         out_random = self.d_net(CR_rep.squeeze(-1).squeeze(-1))
+#         return out, out_random
 
-    def sleep_post_layers(self, SR_rep, CR_rep):
-        SR_rep = self.feature_cnn.conv4(SR_rep)
-        out = self.g_net(SR_rep.reshape(SR_rep.size(0), -1))
+#     def sleep_post_layers(self, SR_rep, CR_rep):
+#         SR_rep = self.feature_cnn.conv4(SR_rep)
+#         out = self.g_net(SR_rep.reshape(SR_rep.size(0), -1))
 
-        CR_rep = self.d_layer3(CR_rep)
-        out_random = self.d_net(CR_rep.reshape(CR_rep.size(0), -1))
-        return out, out_random
+#         CR_rep = self.d_layer3(CR_rep)
+#         out_random = self.d_net(CR_rep.reshape(CR_rep.size(0), -1))
+#         return out, out_random
 
-    def forward_train(self, x):
-        if self.dataset == "seizure":
-            x, x_random = self.seizure_pre_layers(x)
-        elif self.dataset == "sleep":
-            x, x_random = self.sleep_pre_layers(x)
-        # get statisics
-        x_mean = torch.mean(x, keepdim=True, dim=(2, 3))
-        x_random_mean = torch.mean(x_random, keepdim=True, dim=(2, 3))
-        x_std = torch.std(x, keepdim=True, dim=(2, 3))
-        x_random_std = torch.std(x_random, keepdim=True, dim=(2, 3))
-        gamma = np.random.uniform(0, 1)
+#     def forward_train(self, x):
+#         if self.dataset == "seizure":
+#             x, x_random = self.seizure_pre_layers(x)
+#         elif self.dataset == "sleep":
+#             x, x_random = self.sleep_pre_layers(x)
+#         # get statisics
+#         x_mean = torch.mean(x, keepdim=True, dim=(2, 3))
+#         x_random_mean = torch.mean(x_random, keepdim=True, dim=(2, 3))
+#         x_std = torch.std(x, keepdim=True, dim=(2, 3))
+#         x_random_std = torch.std(x_random, keepdim=True, dim=(2, 3))
+#         gamma = np.random.uniform(0, 1)
 
-        # get style-random (SR) features
-        mix_mean = gamma * x_mean + (1 - gamma) * x_random_mean
-        mix_std = gamma * x_std + (1 - gamma) * x_random_std
-        SR_rep = (x - x_mean) / (x_std+1e-5) * mix_std + mix_mean
+#         # get style-random (SR) features
+#         mix_mean = gamma * x_mean + (1 - gamma) * x_random_mean
+#         mix_std = gamma * x_std + (1 - gamma) * x_random_std
+#         SR_rep = (x - x_mean) / (x_std+1e-5) * mix_std + mix_mean
 
-        # get content-random (CR) features
-        CR_rep = (x_random - x_random_mean) / (x_random_std+1e-5) * x_std + x_mean
+#         # get content-random (CR) features
+#         CR_rep = (x_random - x_random_mean) / (x_random_std+1e-5) * x_std + x_mean
 
-        if self.dataset == "seizure":
-            return self.seizure_post_layers(SR_rep, CR_rep)
-        elif self.dataset == "sleep":
-            return self.sleep_post_layers(SR_rep, CR_rep)
-        else:
-            return
+#         if self.dataset == "seizure":
+#             return self.seizure_post_layers(SR_rep, CR_rep)
+#         elif self.dataset == "sleep":
+#             return self.sleep_post_layers(SR_rep, CR_rep)
+#         else:
+#             return
 
-    def forward(self, x):
-        x = self.feature_cnn(x)
-        out = self.g_net(x)
-        return out
+#     def forward(self, x):
+#         x = self.feature_cnn(x)
+#         out = self.g_net(x)
+#         return out
 
 class ProxyPLoss(nn.Module):
 	'''
@@ -1316,63 +1367,64 @@ class ProxyPLoss(nn.Module):
 		
 		return loss
 
-class PCL(Base):
-    def __init__(self, dataset, device=None, voc_size=None, model=None, ehr_adj=None, ddi_adj=None):
-        super().__init__(dataset, device, voc_size, model, ehr_adj, ddi_adj)
-        if dataset == "seizure":
-            self.head = nn.Sequential(
-                nn.Linear(128, 128),
-                nn.ReLU(),
-                nn.Linear(128, 128)
-            )
-            self.g_net = nn.Parameter(torch.randn(6, 128))
+# class PCL(Base):
+#     def __init__(self, dataset, device=None, voc_size=None, model=None, ehr_adj=None, ddi_adj=None):
+#         super().__init__(dataset, device, voc_size, model, ehr_adj, ddi_adj)
+#         if dataset == "seizure":
+#             self.head = nn.Sequential(
+#                 nn.Linear(128, 128),
+#                 nn.ReLU(),
+#                 nn.Linear(128, 128)
+#             )
+#             self.g_net = nn.Parameter(torch.randn(6, 128))
 
-        elif dataset == "sleep":
-            self.head = nn.Sequential(
-                nn.Linear(128, 128),
-                nn.ReLU(),
-                nn.Linear(128, 128)
-            )
-            self.g_net = nn.Parameter(torch.randn(5, 128))
+#         elif dataset == "sleep":
+#             self.head = nn.Sequential(
+#                 nn.Linear(128, 128),
+#                 nn.ReLU(),
+#                 nn.Linear(128, 128)
+#             )
+#             self.g_net = nn.Parameter(torch.randn(5, 128))
 
-    def forward_train(self, x):
-        x = self.feature_cnn(x)
-        out = F.normalize(x, p=2, dim=1) @ F.normalize(self.g_net, p=2, dim=1).T
+#     def forward_train(self, x):
+#         x = self.feature_cnn(x)
+#         out = F.normalize(x, p=2, dim=1) @ F.normalize(self.g_net, p=2, dim=1).T
 
-        x_rep = self.head(x)
-        w_rep = self.head(self.g_net)
-        return out, x_rep, w_rep
+#         x_rep = self.head(x)
+#         w_rep = self.head(self.g_net)
+#         return out, x_rep, w_rep
     
-    def forward(self, x):
-        x = self.feature_cnn(x)
-        out = F.normalize(x, p=2, dim=1) @ F.normalize(self.g_net, p=2, dim=1).T
-        return out
+#     def forward(self, x):
+#         x = self.feature_cnn(x)
+#         out = F.normalize(x, p=2, dim=1) @ F.normalize(self.g_net, p=2, dim=1).T
+#         return out
 
-class MLDG(Base):
-    def __init__(self, dataset, device=None, voc_size=None, model=None, ehr_adj=None, ddi_adj=None):
-        super().__init__(dataset, device, voc_size, model, ehr_adj, ddi_adj)
-        self.dataset = dataset
-    def forward(self, x):
-        x = self.feature_cnn(x)
-        out = self.g_net(x)
-        return out
+# class MLDG(Base):
+#     def __init__(self, dataset, device=None, voc_size=None, model=None, ehr_adj=None, ddi_adj=None):
+#         super().__init__(dataset, device, voc_size, model, ehr_adj, ddi_adj)
+#         self.dataset = dataset
+#     def forward(self, x):
+#         x = self.feature_cnn(x)
+#         out = self.g_net(x)
+#         return out
     
-    def functional_forward(self, x, fast_weights):
-        x = self.feature_cnn.functional_forward(x, fast_weights)
-        if self.dataset == "seizure":
-            out = F.linear(x, fast_weights['g_net.0.weight'], fast_weights['g_net.0.bias'])
-            out = F.relu(out)
-            out = F.linear(out, fast_weights['g_net.2.weight'], fast_weights['g_net.2.bias'])
-        elif self.dataset == "sleep":
-            out = F.linear(x, fast_weights['g_net.0.weight'], fast_weights['g_net.0.bias'])
-            out = F.relu(out)
-            out = F.linear(out, fast_weights['g_net.2.weight'], fast_weights['g_net.2.bias'])
-        elif self.dataset == "mortality":
-            out = F.linear(x, fast_weights['g_net.0.weight'], fast_weights['g_net.0.bias'])
-            out = F.relu(out)
-            out = F.linear(out, fast_weights['g_net.2.weight'], fast_weights['g_net.2.bias'])
-        elif self.dataset == "drugrec":
-            out = F.linear(x, fast_weights['g_net.0.weight'], fast_weights['g_net.0.bias'])
-            out = F.relu(out)
-            out = F.linear(out, fast_weights['g_net.2.weight'], fast_weights['g_net.2.bias'])
-        return out
+#     def functional_forward(self, x, fast_weights):
+#         x = self.feature_cnn.functional_forward(x, fast_weights)
+#         if self.dataset == "seizure":
+#             out = F.linear(x, fast_weights['g_net.0.weight'], fast_weights['g_net.0.bias'])
+#             out = F.relu(out)
+#             out = F.linear(out, fast_weights['g_net.2.weight'], fast_weights['g_net.2.bias'])
+#         elif self.dataset == "sleep":
+#             out = F.linear(x, fast_weights['g_net.0.weight'], fast_weights['g_net.0.bias'])
+#             out = F.relu(out)
+#             out = F.linear(out, fast_weights['g_net.2.weight'], fast_weights['g_net.2.bias'])
+#         elif self.dataset == "mortality":
+#             out = F.linear(x, fast_weights['g_net.0.weight'], fast_weights['g_net.0.bias'])
+#             out = F.relu(out)
+#             out = F.linear(out, fast_weights['g_net.2.weight'], fast_weights['g_net.2.bias'])
+#         elif self.dataset == "drugrec":
+#             out = F.linear(x, fast_weights['g_net.0.weight'], fast_weights['g_net.0.bias'])
+#             out = F.relu(out)
+#             out = F.linear(out, fast_weights['g_net.2.weight'], fast_weights['g_net.2.bias'])
+#         return out
+

@@ -5,7 +5,8 @@ import torch
 import numpy as np
 import time
 from model_sleep import SleepBase, SleepDev, SleepCondAdv, SleepDANN, SleepIRM, SleepSagNet, SleepPCL, SleepMLDG
-
+# from torch.utils.tensorboard import SummaryWriter
+# writer = SummaryWriter()
 
 def accuracy_score(y_true, y_pred):
     return np.sum(y_pred == y_true) / len(y_true)
@@ -180,7 +181,6 @@ if __name__ == '__main__':
         if args.model == "DANN":
             model.train(train_loader, device, i, 50)
         elif args.model == "dev":
-            # train_loader는 따로 있음
             train_loader_dev = trainloader_for_dev()
             model.train(train_loader_dev, device)
         elif args.model == "MLDG":

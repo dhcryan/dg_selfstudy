@@ -1,3 +1,6 @@
+import pickle
+import matplotlib.pyplot as plt
+#Sample 하나당 plotting하는 건데 
 import sys
 import mne
 import numpy as np
@@ -8,7 +11,7 @@ import argparse
 
 root = 'C:\\Users\\dhc40\\manyDG\\data\\sleep\\sleep-edf-database-expanded-1.0.0'
 def sample_process(root_folder, k, N, epoch_sec, index):
-    for i, j in enumerate(index):
+    for i, j in enumerate(index,5):
         if i % N == k:
             if k == 0:
                 print ('Progress: {} / {}'.format(i, len(index)))
@@ -19,25 +22,9 @@ def sample_process(root_folder, k, N, epoch_sec, index):
             for pat_per_night in pat_nights:
                 # load signal "X" part
                 data = mne.io.read_raw_edf(root_folder + '\\' + list(filter(lambda x: (x[:6] == pat_per_night) and ('PSG' in x), pat_files))[0])
-                X = data.get_data()[:2, :]
-
-                # load label "Y" part
-                ann = mne.read_annotations(root_folder + '\\' + list(filter(lambda x: (x[:6] == pat_per_night) and ('Hypnogram' in x), pat_files))[0])
-                labels = []
-                for dur, des in zip(ann.duration, ann.description):
-                    for i in range(int(dur) // 30):
-                        labels.append(des[-1])
-
-                # slice the EEG signals into non-overlapping windows, window size = sampling rate per second * second time = 100 * windowsize
-                for slice_index in range(X.shape[1] // (100 * epoch_sec)):
-                    # ingore the no labels
-                    # ? 로기록
-                    if labels[slice_index] == '?': continue
-                    path = os.path.join(root, 'cassette_processed\\cassette-' + pat_per_night + '-' + str(slice_index) + '.pkl')
-                    # window로 자름
-                    pickle.dump({'X': X[:, slice_index * 100 * epoch_sec: (slice_index+1) * 100 * epoch_sec], \
-                        'y': labels[slice_index]}, open(path, 'wb'))
-
+                X = data.get_data()[:, :]
+                print(X.shape)
+                
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--windowsize', type=int, default=30, help="unit (seconds)")
@@ -59,5 +46,23 @@ if __name__ == '__main__':
         process.start()
         p_list.append(process)
 
-    for i in p_list:
-        i.join() 
+    # for i in p_list:
+    #     i.join() 
+# with open('C:\\Users\\dhc40\\manyDG\\data\\sleep\\sleep-edf-database-expanded-1.0.0\\cassette_processed\\cassette-SC4731-1265.pkl', 'rb') as f:
+#     data = pickle.load(f)
+#     # print(obj['X'].shape)
+#     # f.close()
+#     # X = data['X']
+#     # print(X[0])
+# # X, y 추출
+# X = data['X']
+# y = data['y']
+
+# # plot
+# fig, axs = plt.subplots(nrows=2, figsize=(10, 5))
+# axs[0].plot(X[0])
+# axs[0].set_title('Channel 1')
+# axs[1].plot(X[1])
+# axs[1].set_title('Channel 2')
+# fig.suptitle(f'Sleep stage: {y}')
+# plt.show()

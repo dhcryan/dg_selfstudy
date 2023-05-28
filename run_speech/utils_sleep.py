@@ -45,22 +45,14 @@ class SleepLoader(torch.utils.data.Dataset):
     def __init__(self, indices):
         self.indices = indices
         self.dir = 'C:\\Users\\dhc40\\manyDG\\data\\sleep\\sleep-edf-database-expanded-1.0.0\\cassette_processed'
-        self.preprocessing=True
-        
+
     def __len__(self):
         return len(self.indices)
 
     def __getitem__(self, index):
         path = os.path.join(self.dir, self.indices[index])
         sample = pickle.load(open(path, 'rb'))
-        if self.preprocessing:
-            mean=pickle.load(open(r'C:\Users\dhc40\manyDG\run_sleep\mean.pkl','rb'))
-            std=pickle.load(open(r'C:\Users\dhc40\manyDG\run_sleep\std.pkl','rb'))
-            X=(sample['X']-mean)/std
-            y=y_transform(sample['y'])
-        else:
-            X, y = sample['X'], y_transform(sample['y'])
-                       
+        X, y = sample['X'], y_transform(sample['y'])
         return torch.FloatTensor(X), y
 
 class SleepDoubleLoader(torch.utils.data.Dataset):
@@ -86,8 +78,7 @@ class SleepDoubleLoader(torch.utils.data.Dataset):
             X, y = sample['X'], y_transform(sample['y'])
             
         path_aux = os.path.join(self.dir, self.indices_aux[index])
-        sample_aux = pickle.load(open(path_aux, 'rb'))  
-                  
+        sample_aux = pickle.load(open(path_aux, 'rb'))            
         if self.preprocessing:
             mean=pickle.load(open(r'C:\Users\dhc40\manyDG\run_sleep\mean.pkl','rb'))
             std=pickle.load(open(r'C:\Users\dhc40\manyDG\run_sleep\std.pkl','rb'))
