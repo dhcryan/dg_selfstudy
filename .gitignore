@@ -2,9 +2,12 @@ data/sleep/sleep-edf-database-expanded-1.0.0/
 *.pt
 run_sleep/__pycache__/
 *.__pycache__
-run_drugrec/
-run_seizure/
-run_hospitalization/
-pre-trained/
+run_drugrec/*
+run_seizure/*
+run_hospitalization/*
+pre-trained/*
 events.out.*
 *.pyc
+ICLR-2023-poster.png
+data/hospitalization
+data/drugrec
