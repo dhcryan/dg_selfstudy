@@ -1,6 +1,7 @@
-# ICLR'23 ManyDG Paper
+# 2023-1 자기주도연구
 - ManyDG: Many-domain Generalization for Healthcare Applications
-- Data, Processing Scripts, Baselines and Model Codes
+- Signal data analysis based on domain generalization
+
 > 15-minute explanation video is provided in [YouTube]
 
 
@@ -24,12 +25,6 @@
     - **utils_sleep.py**: This file provides the data split and loading files.
 
 ## 2. How to run the code
-- for seizure detection
-``` python
-cd ./ManyDG
-# obtain the Seizure data first
-python run_seizure/run_seizure.py --model [MODEL] --cuda [WHICH GPU] --N_vote [DEFAULT 5] --N_pat [N_OF_PAT] --epochs [EPOCHS]
-```
 - for sleep staging
 ``` python
 cd ./ManyDG
