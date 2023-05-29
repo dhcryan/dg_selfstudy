@@ -69,8 +69,8 @@ class SleepDoubleLoader(torch.utils.data.Dataset):
         domain=self.indices[index].split('-')[1][3:-1]
         
         if self.preprocessing:
-            mean=pickle.load(open(r'C:\Users\dhc40\manyDG\run_sleep\mean.pkl','rb'))
-            std=pickle.load(open(r'C:\Users\dhc40\manyDG\run_sleep\std.pkl','rb'))
+            mean=pickle.load(open(r'C:\Users\dhc40\manyDG\run_speech\mean.pkl','rb'))
+            std=pickle.load(open(r'C:\Users\dhc40\manyDG\run_speech\std.pkl','rb'))
             X=(sample['X']-mean)/std
             y=y_transform(sample['y'])
             # X_aux, y_aux = sample_aux['X'], y_transform(sample_aux['y'])
@@ -80,8 +80,8 @@ class SleepDoubleLoader(torch.utils.data.Dataset):
         path_aux = os.path.join(self.dir, self.indices_aux[index])
         sample_aux = pickle.load(open(path_aux, 'rb'))            
         if self.preprocessing:
-            mean=pickle.load(open(r'C:\Users\dhc40\manyDG\run_sleep\mean.pkl','rb'))
-            std=pickle.load(open(r'C:\Users\dhc40\manyDG\run_sleep\std.pkl','rb'))
+            mean=pickle.load(open(r'C:\Users\dhc40\manyDG\run_speech\mean.pkl','rb'))
+            std=pickle.load(open(r'C:\Users\dhc40\manyDG\run_speech\std.pkl','rb'))
             X_aux, y_aux = (sample_aux['X']-mean)/std , y_transform(sample_aux['y'])
         else:
             X_aux, y_aux = sample_aux['X'], y_transform(sample_aux['y'])

@@ -29,7 +29,18 @@
 ``` python
 cd ./ManyDG
 python data/sleep/sleep_edf_process.py
-python run_sleep/run_sleep.py --model [MODEL] --cuda [WHICH GPU] --N_pat [N_OF_PAT] --epochs [EPOCHS]
+python run_sleep/util_sleep.py
+python run_sleep/model_sleep.py
+python run_sleep/run_sleep.py --model dev --cuda 0 --epochs 50
+```
+- for speech
+``` python
+cd ./ManyDG
+# python data/sleep/sleep_edf_process.py
+python run_speech/model.py
+python run_speech/util_sleep.py
+python run_speech/model_sleep.py
+python run_speech/run_sleep.py --model dev --cuda 0 --epochs 50
 ```
 
 ## 3. Result

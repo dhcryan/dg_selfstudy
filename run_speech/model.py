@@ -8,7 +8,9 @@ import math
 from torch.nn import Parameter
 import matplotlib.pyplot as plt
 import torchaudio
-
+from transformers import Wav2Vec2Model
+from transformers import Wav2Vec2FeatureExtractor
+from torch.nn import Parameter
 """
 Residual block
 """
@@ -288,13 +290,13 @@ class Dev(Base):
         #v = v.squeeze(axis=2)
         #v = self.fc2(v)
         v = self.wav2vec2(x)
-        print(v.shape)
+        # print(v.shape)
         v = self.fc3(v)
-        print(v.shape)
+        # print(v.shape)
         v = v.squeeze(axis=2)
-        print(v.shape)
+        # print(v.shape)
         v = self.fc4(v)
-        print(v.shape)
+        # print(v.shape)
         #v = self.feature_cnn(x)
         z = self.q_net(v)
         e = vec_minus(v, z)
