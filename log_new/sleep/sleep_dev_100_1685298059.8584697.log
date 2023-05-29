@@ -1,0 +1,4 @@
+0-th test accuracy: 0.8043, kappa: 0.5894, weighted_f1: 0.321
+0-th val accuracy: 0.8215, kappa: 0.6125, weighted_f1: 0.3251
+1-th test accuracy: 0.8206, kappa: 0.6261, weighted_f1: 0.3336
+1-th val accuracy: 0.8438, kappa: 0.655, weighted_f1: 0.3403

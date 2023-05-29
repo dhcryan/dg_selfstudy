@@ -2,7 +2,8 @@
 - ManyDG: Many-domain Generalization for Healthcare Applications
 - Data, Processing Scripts, Baselines and Model Codes
 > 15-minute explanation video is provided in [YouTube]
-https://www.youtube.com/watch?v=xKOSiauQtwc
+
+
 
 <!-- <img src="ICLR-2023-poster.png" width="800"> -->
 
@@ -36,7 +37,10 @@ python data/sleep/sleep_edf_process.py
 python run_sleep/run_sleep.py --model [MODEL] --cuda [WHICH GPU] --N_pat [N_OF_PAT] --epochs [EPOCHS]
 ```
 
-## 3. Citation
+## 3. Result
+- https://tensorboard.dev/experiment/Nzm9ZodQQOW6fliklD8SbQ/
+
+## 4. Citation
 ```bibtex
 @inproceedings{yang2023manydg,
     title = {ManyDG: Many-domain Generalization for Healthcare Applications},

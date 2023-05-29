@@ -8,7 +8,7 @@ from collections import OrderedDict
 import sys
 import os
 # from torch.utils.tensorboard import SummaryWriter
-log_path='C:\\Users\\dhc40\\manyDG\\run_sleep\\Loss'
+log_path='C:\\Users\\dhc40\\manyDG\\run_sleep\\Result'
 from torch.utils.tensorboard import SummaryWriter
 
 # writer_loss1 = SummaryWriter(log_dir=log_path + '\\Loss_total')
@@ -88,12 +88,12 @@ class SleepDev(nn.Module):
             self.optimizer.step()
         print ('train avg loss: {:.4}, count: {}'.format(sum(loss_collection) / len(loss_collection), len(loss_collection)))
     
-    def train(self, train_loader, device):
+    def train(self, train_loader, device,i):
         self.model.train()
         loss_collection = [[], [], [], [], []]
 
         # for _, (X, X2, label, label2) in enumerate(train_loader):
-        for i, (X, X2, label, label2) in enumerate(train_loader,1):
+        for _, (X, X2, label, label2) in enumerate(train_loader):
             X = X.to(device)
             X2 = X2.to(device)
             label = label.to(device)
@@ -135,11 +135,11 @@ class SleepDev(nn.Module):
             # writer_loss4.add_scalar(r"C:\Users\dhc40\manyDG\run_sleep\Loss\Loss_reconstruction", loss3, i)
             # writer_loss5.add_scalar(r"C:\Users\dhc40\manyDG\run_sleep\Loss\Loss_similarity", loss4, i)
 
-            writer_loss.add_scalars("Loss", {"Loss_total": loss,
-                                        "Loss_cross entropy": loss1,
-                                        "Loss_MMD": loss2,
-                                        "Loss_reconstruction": loss3,
-                                        "Loss_similarity": loss4}, i)
+            writer_loss.add_scalars("Loss", {"total": loss,
+                                        "cross entropy": loss1,
+                                        "MMD": loss2,
+                                        "reconstruction": loss3,
+                                        "similarity": loss4}, i)
             
             
             loss_collection[0].append(loss1.item())

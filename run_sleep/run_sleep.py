@@ -5,6 +5,11 @@ import torch
 import numpy as np
 import time
 from model_sleep import SleepBase, SleepDev, SleepCondAdv, SleepDANN, SleepIRM, SleepSagNet, SleepPCL, SleepMLDG
+# from torch.utils.tensorboard import SummaryWriter
+log_path='C:\\Users\\dhc40\\manyDG\\run_sleep\\Result'
+from torch.utils.tensorboard import SummaryWriter
+writer_acc = SummaryWriter(log_dir=log_path)
+
 
 
 def accuracy_score(y_true, y_pred):
@@ -182,7 +187,7 @@ if __name__ == '__main__':
         elif args.model == "dev":
             # train_loader는 따로 있음
             train_loader_dev = trainloader_for_dev()
-            model.train(train_loader_dev, device)
+            model.train(train_loader_dev, device,i)
         elif args.model == "MLDG":
             N = len(generator_ls)
             val_idx = np.random.choice(np.arange(N), round(N * 0.1), replace=False)
@@ -199,17 +204,20 @@ if __name__ == '__main__':
         with open('C:\\Users\\dhc40\\manyDG\\log_new\\sleep\\{}.log'.format(model_name), 'a') as outfile:
             print ('{}-th test accuracy: {:.4}, kappa: {:.4}, weighted_f1: {:.4}'.format(
                 i, accuracy_score(gt, result), cohen_kappa_score(gt, result), weighted_f1(gt, result)), file=outfile)
-        
-        result, gt = model.test(val_loader, device)
+    
+        result_val, gt_val = model.test(val_loader, device)
         print ('{}-th val accuracy: {:.4}, kappa: {:.4}, weighted_f1: {:.4}, time: {}s'.format(
-            i, accuracy_score(gt, result), cohen_kappa_score(gt, result), weighted_f1(gt, result), time.time() - tic))
-        val_array.append(accuracy_score(gt, result))
-        val_kappa_array.append(cohen_kappa_score(gt, result))
-        val_f1_array.append(weighted_f1(gt, result))
+            i, accuracy_score(gt_val, result_val), cohen_kappa_score(gt_val, result_val), weighted_f1(gt_val, result_val), time.time() - tic))
+        val_array.append(accuracy_score(gt_val, result_val))
+        val_kappa_array.append(cohen_kappa_score(gt_val, result_val))
+        val_f1_array.append(weighted_f1(gt_val, result_val))
         with open('C:\\Users\\dhc40\\manyDG\\log_new\\sleep\\{}.log'.format(model_name), 'a') as outfile:
              print ('{}-th val accuracy: {:.4}, kappa: {:.4}, weighted_f1: {:.4}'.format(
-                i, accuracy_score(gt, result), cohen_kappa_score(gt, result), weighted_f1(gt, result)), file=outfile)
-
+                i, accuracy_score(gt_val, result_val), cohen_kappa_score(gt_val, result_val), weighted_f1(gt_val, result_val)), file=outfile)
+        writer_acc.add_scalars("Accuracy", {"test":accuracy_score(gt, result),
+                                        "validation": accuracy_score(gt_val, result_val)}, i)    
         # save model
         torch.save(model.state_dict(), 'C:\\Users\\dhc40\\manyDG\\pre-trained\\sleep{}-{}.pt'.format(i, model_name))
         print ()
+    writer_acc.flush()
+    writer_acc.close()

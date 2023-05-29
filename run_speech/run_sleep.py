@@ -4,7 +4,7 @@ import utils_sleep
 import torch
 import numpy as np
 import time
-from model_sleep import SleepBase, SleepDev, SleepCondAdv, SleepDANN, SleepIRM, SleepSagNet, SleepPCL, SleepMLDG
+from model_sleep import SleepBase, SleepDev
 # from torch.utils.tensorboard import SummaryWriter
 # writer = SummaryWriter()
 
@@ -49,18 +49,13 @@ def cohen_kappa_score(y1, y2):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, required=True, help="choose from base, dev, condadv, DANN, IRM, SagNet, PCL, MLDG")
+    parser.add_argument('--model', type=str, required=True, help="choose from base, dev")
     parser.add_argument('--cuda', type=int, default=0, help="which cuda")
     parser.add_argument('--N_pat', type=int, default=100, help="number of patients")
     parser.add_argument('--dataset', type=str, default="sleep", help="dataset name")
     parser.add_argument('--MLDG_threshold', type=int, default=1024, help="threshold for MLDG")
     parser.add_argument('--epochs', type=int, default=1, help="N of epochs")
     args = parser.parse_args()
-
-    if args.model == "MLDG":
-        args.epochs *= 5
-        if args.N_pat < 1000:
-            args.MLDG_threshold = 256
 
     device = torch.device("cuda:{}".format(args.cuda) if torch.cuda.is_available() else "cpu")
     print ('device:', device)
@@ -112,17 +107,6 @@ if __name__ == '__main__':
                 batch_size=256, shuffle=True, num_workers=16)
         return train_loader
 
-    def trainloader_for_MLDG():
-        loader_ls = []
-        for i, (_, X) in enumerate(train_pat_map.items()):
-            if i == args.N_pat: break
-            loader_ls.append(
-                torch.utils.data.DataLoader(
-                    utils_sleep.SleepLoader(X),
-                    batch_size=16, 
-                    shuffle=True)
-            )
-        return loader_ls
 
     def valloader_for_all():
         val_X = []
@@ -147,25 +131,6 @@ if __name__ == '__main__':
     elif args.model == "dev":
         train_loader = trainloader_for_other()
         model = SleepDev(device, args.dataset).to(device)
-    elif args.model == "condadv":
-        train_loader = trainloader_for_adv()
-        model = SleepCondAdv(device, args.dataset, args.N_pat).to(device)
-    elif args.model == "DANN":
-        train_loader = trainloader_for_adv()
-        model = SleepDANN(device, args.dataset, args.N_pat).to(device)
-    elif args.model == "IRM":
-        train_loader = trainloader_for_other()
-        model = SleepIRM(device, args.dataset).to(device)
-    elif args.model == "SagNet":
-        train_loader = trainloader_for_other()
-        model = SleepSagNet(device, args.dataset).to(device)
-    elif args.model == "PCL":
-        train_loader = trainloader_for_other()
-        model = SleepPCL(device, args.dataset).to(device)
-    elif args.model == "MLDG":
-        loader_ls = trainloader_for_MLDG()
-        generator_ls = [iter(item) for item in loader_ls]
-        model = SleepMLDG(device, args.dataset).to(device)
 
     test_loader = testloader_for_all()
     val_loader = valloader_for_all()
@@ -178,15 +143,9 @@ if __name__ == '__main__':
     test_f1_array, val_f1_array = [], []
     for i in range (args.epochs):
         tic = time.time()
-        if args.model == "DANN":
-            model.train(train_loader, device, i, 50)
-        elif args.model == "dev":
+        if args.model == "dev":
             train_loader_dev = trainloader_for_dev()
             model.train(train_loader_dev, device)
-        elif args.model == "MLDG":
-            N = len(generator_ls)
-            val_idx = np.random.choice(np.arange(N), round(N * 0.1), replace=False)
-            model.train(generator_ls, loader_ls, val_idx, device)
         else:
             model.train(train_loader, device)
         
