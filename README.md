@@ -1,12 +1,13 @@
 # 2023-1 자기주도연구
 - ManyDG: Many-domain Generalization for Healthcare Applications
+- wav2vec 2.0: A Framework for Self-Supervised Learning of Speech Representations
 - Signal data analysis based on domain generalization
 
 > 15-minute explanation video is provided in [YouTube]
 
 
 
-<!-- <img src="ICLR-2023-poster.png" width="800"> -->
+<img src="new_DG.png" width="800">
 
 ## 1. Folder Tree
 - ```data/```

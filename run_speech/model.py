@@ -146,15 +146,17 @@ class PretrainedWav2Vec2Model(nn.Module):
 
         self.bundle = torchaudio.pipelines.WAV2VEC2_BASE
         model = self.bundle.get_model()
-        model.eval()
-
+        # model.eval()
         self.model = model
+        self.model.feature_extractor.requires_grad_(False)  # feature extractor freezing
 
     def forward(self, x):
         # print(x.shape)==torch.Size([256, 2, 3000])
         # x[:,0] is the first channel-> [256, 3000]
         x = torchaudio.functional.resample(x[:,0], self.sample_rate, self.bundle.sample_rate)
         # print(x.shape) => 256,900
+        # for param in self.model.feature_extractor.parameters():
+        #     param.requires_grad = False       
         c, _ = self.model.extract_features(x)
         # print(c.shape)
         # print(c[-1].shape)
