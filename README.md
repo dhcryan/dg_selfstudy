@@ -3,7 +3,7 @@
 - wav2vec 2.0: A Framework for Self-Supervised Learning of Speech Representations
 - Signal data analysis based on domain generalization
 
-> 15-minute explanation video is provided in [YouTube]
+> 5-minute explanation video is provided in [YouTube](https://drive.google.com/file/d/1ovEKEI7WhUgptVu1Gerh2lkKX_HlRGON/view?usp=sharing)
 
 
 
@@ -28,7 +28,7 @@
 ## 2. How to run the code
 - for sleep staging
 ``` python
-cd ./ManyDG
+cd ./dg_selfstudy
 python data/sleep/sleep_edf_process.py
 python run_sleep/util_sleep.py
 python run_sleep/model_sleep.py
@@ -36,7 +36,7 @@ python run_sleep/run_sleep.py --model dev --cuda 0 --epochs 50
 ```
 - for speech
 ``` python
-cd ./ManyDG
+cd ./dg_selfstudy
 # python data/sleep/sleep_edf_process.py
 python run_speech/model.py
 python run_speech/util_sleep.py
@@ -46,6 +46,7 @@ python run_speech/run_sleep.py --model dev --cuda 0 --epochs 50
 
 ## 3. Result
 - https://tensorboard.dev/experiment/Nzm9ZodQQOW6fliklD8SbQ/
+- https://tensorboard.dev/experiment/pfBrwtEZS6WszR8qoK7cdA/
 
 ## 4. Citation
 ```bibtex

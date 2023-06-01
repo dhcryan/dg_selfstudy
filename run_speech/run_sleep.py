@@ -106,7 +106,7 @@ if __name__ == '__main__':
             train_X_aux += X[-len(X)//2 - 1:]
         
         train_loader = torch.utils.data.DataLoader(utils_sleep.SleepDoubleLoader(train_X, train_X_aux),
-                batch_size=128, shuffle=True, num_workers=16)
+                batch_size=256, shuffle=True, num_workers=16)
         return train_loader
 
 

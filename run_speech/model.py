@@ -141,23 +141,26 @@ Wav2vec 2.0
 class PretrainedWav2Vec2Model(nn.Module):
     def __init__(self, sample_rate):
         super().__init__()
-
         self.sample_rate = sample_rate
-
         self.bundle = torchaudio.pipelines.WAV2VEC2_BASE
         model = self.bundle.get_model()
-        # model.eval()
+        model.eval()
         self.model = model
-        self.model.feature_extractor.requires_grad_(False)  # feature extractor freezing
+        # self.model.feature_extractor.requires_grad_(False)  # feature extractor freezing
+        # feature extractor freezing
+
 
     def forward(self, x):
         # print(x.shape)==torch.Size([256, 2, 3000])
         # x[:,0] is the first channel-> [256, 3000]
+        # cnn freeze
+    
         x = torchaudio.functional.resample(x[:,0], self.sample_rate, self.bundle.sample_rate)
-        # print(x.shape) => 256,900
-        # for param in self.model.feature_extractor.parameters():
-        #     param.requires_grad = False       
-        c, _ = self.model.extract_features(x)
+        # print(x.shape) => 256,900\     
+        # transformer=>extract_features, torch.no_grad로 자동미분 끄기
+        with torch.no_grad():
+            c, _ = self.model.extract_features(x)
+        
         # print(c.shape)
         # print(c[-1].shape)
         return c[-1]
@@ -278,8 +281,8 @@ class Dev(Base):
                 nn.Linear(128, 128),
             )
             self.g_net = GNet(5, 128) # change the argument for dimension of output
-            #self.fc1 = nn.Linear(23, 1) # change the argument for dimension of input channels
-            #self.fc2 = nn.Linear(2048, 128) # change the argument for sequence length of input
+            self.fc1 = nn.Linear(23, 1) # change the argument for dimension of input channels
+            self.fc2 = nn.Linear(2048, 128) # change the argument for sequence length of input
     def forward(self, x):
         """
         feature CNN is h(x)
@@ -287,10 +290,10 @@ class Dev(Base):
         predictor is g(x)
         mutual reconstruction p(x)
         """
-        #x = x.transpose(1, 2)
-        #v = self.fc1(x)
-        #v = v.squeeze(axis=2)
-        #v = self.fc2(v)
+        # x = x.transpose(1, 2)
+        # v = self.fc1(x)
+        # v = v.squeeze(axis=2)
+        # v = self.fc2(v)
         v = self.wav2vec2(x)
         # print(v.shape)
         v = self.fc3(v)

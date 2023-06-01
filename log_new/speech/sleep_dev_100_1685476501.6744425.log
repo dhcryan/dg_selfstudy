@@ -1,0 +1,13 @@
+0-th test accuracy: 0.6817, kappa: 0.002229, weighted_f1: 0.1632
+0-th val accuracy: 0.6747, kappa: -0.01496, weighted_f1: 0.1629
+1-th test accuracy: 0.6677, kappa: 0.09881, weighted_f1: 0.2034
+1-th val accuracy: 0.6219, kappa: 0.01156, weighted_f1: 0.1807
+2-th test accuracy: 0.682, kappa: 0.007588, weighted_f1: 0.1652
+2-th val accuracy: 0.673, kappa: -0.01384, weighted_f1: 0.1637
+3-th test accuracy: 0.6771, kappa: 0.033, weighted_f1: 0.1769
+3-th val accuracy: 0.6517, kappa: -0.008317, weighted_f1: 0.1702
+4-th test accuracy: 0.681, kappa: 0.007095, weighted_f1: 0.1654
+4-th val accuracy: 0.6713, kappa: -0.0133, weighted_f1: 0.1645
+5-th test accuracy: 0.6807, kappa: 0.02935, weighted_f1: 0.1735
+5-th val accuracy: 0.6607, kappa: -0.008296, weighted_f1: 0.1683
+6-th test accuracy: 0.6786, kappa: 0.04597, weighted_f1: 0.18
