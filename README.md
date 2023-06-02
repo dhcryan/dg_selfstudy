@@ -54,6 +54,7 @@ python run_speech/run_sleep.py --model dev --cuda 0 --epochs 50
     title = {ManyDG: Many-domain Generalization for Healthcare Applications},
     author = {Yang, Chaoqi and Westover, M. Brandon and Sun, Jimeng},
     booktitle = {The 11th International Conference on Learning Representations, {ICLR} 2023},
-    year = {2023}
+    year = {2023},
+    github = https://github.com/ycq091044/ManyDG
 }
 ```
