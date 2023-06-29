@@ -173,7 +173,7 @@ class Base(nn.Module):
         if dataset == "sleep":
             #100 hz==10000 sample rate
             self.wav2vec2 = PretrainedWav2Vec2Model(10000)
-            self.feature_cnn = FeatureCNN_sleep()
+            # self.feature_cnn = FeatureCNN_sleep()
             self.g_net = nn.Sequential(
                 nn.Linear(128, 32),
                 nn.ReLU(),
@@ -195,11 +195,11 @@ class Base(nn.Module):
         return diagICD2idx, diagstring2idx, labname2idx, physicalexam2idx, treatment2idx, medname2idx
 
     def forward(self, x):
-        # x = self.wav2vec2(x)
+        x = self.wav2vec2(x)
         # x = self.fc3(x)
         # x = x.squeeze(axis=2)
         # x = self.fc4(x)
-        x = self.feature_cnn(x)
+        # x = self.feature_cnn(x)
         out = self.g_net(x)
         return out, x
 
